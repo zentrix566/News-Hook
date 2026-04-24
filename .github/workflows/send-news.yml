@@ -1,10 +1,10 @@
 name: 每日新闻推送
 
-# 每天北京时间 9 点执行
-# 注意：GitHub Actions 的 cron 使用 UTC 时间，北京时间 9 点 = UTC 1 点
+# 每天北京时间 6:30 执行
+# 注意：GitHub Actions 的 cron 使用 UTC 时间，北京时间 6:30 = UTC 22:30 (前一天)
 on:
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '30 22 * * *'
   # 支持手动触发
   workflow_dispatch:
 
