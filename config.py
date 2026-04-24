@@ -4,7 +4,7 @@
 """
 
 # RSS 新闻源配置
-# AI中文 + AI英文 + 运维中文 + 运维英文 + 国际新闻 + 国内新闻
+# AI中文 + AI英文 + 运维中文 + 运维英文
 RSS_FEEDS = {
     # AI 领域 - 中文
     "AI_CN": [
@@ -92,40 +92,6 @@ RSS_FEEDS = {
         {
             "name": "CNCF Blog",
             "url": "https://www.cncf.io/feed/",
-        }
-    ],
-    # 国际新闻 - 英文
-    "WORLD_EN": [
-        {
-            "name": "BBC News",
-            "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
-        },
-        {
-            "name": "CNN World",
-            "url": "http://rss.cnn.com/rss/cnn_world.rss",
-        },
-        {
-            "name": "Reuters World",
-            "url": "https://feeds.reuters.com/reuters/worldNews",
-        },
-        {
-            "name": "NYT World",
-            "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
-        }
-    ],
-    # 国内新闻 - 中文
-    "CHINA_CN": [
-        {
-            "name": "新华网",
-            "url": "http://www.xinhuanet.com/feed.htm",
-        },
-        {
-            "name": "人民网",
-            "url": "http://www.people.com.cn/rss/10002.xml",
-        },
-        {
-            "name": "财新网",
-            "url": "https://rss.caixin.com/middle.xml",
         }
     ]
 }
