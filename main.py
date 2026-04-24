@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 News-Hook
-每日抓取 AI 和运维新闻，推送到飞书
+每日抓取各类新闻，分多次推送到飞书
 """
 
 import os
@@ -67,57 +67,27 @@ class FeishuPusher:
 
     def __init__(self, webhook_url: str):
         self.webhook_url = webhook_url
-
-    def format_message(self, news_by_category: Dict[str, List[Dict]]) -> Dict:
-        """将新闻格式化为飞书富文本消息"""
-        category_names = {
-            "AI": "🤖 AI 最新资讯",
-            "OPS": "🔧 运维/DevOps 资讯"
+        self.category_names = {
+            "AI_CN": "🤖 AI 资讯 - 中文",
+            "AI_EN": "🤖 AI 资讯 - 英文",
+            "OPS_CN": "🔧 运维/DevOps - 中文",
+            "OPS_EN": "🔧 运维/DevOps - 英文",
+            "WORLD_EN": "🌍 国际新闻 - 英文",
+            "CHINA_CN": "🇨🇳 国内新闻 - 中文"
         }
 
-        elements = []
+    def format_message(self, category: str, news_list: List[Dict]) -> Dict:
+        """将单个分类的新闻格式化为飞书消息"""
+        category_name = self.category_names.get(category, category)
 
-        # 添加标题
-        elements.append({
-            "tag": "text",
-            "text": f"📰 每日新闻推送 - {datetime.now().strftime('%Y年%m月%d日')}\n\n",
-        })
+        content = f"📰 每日新闻推送 - {datetime.now().strftime('%Y年%m月%d日')}\n\n"
+        content += f"**{category_name}**\n\n"
 
-        for category, news_list in news_by_category.items():
-            if not news_list:
-                continue
-
-            elements.append({
-                "tag": "text",
-                "text": f"{category_names[category]}\n",
-            })
-
+        if not news_list:
+            content += "😴 今天没有新资讯"
+        else:
             for i, news in enumerate(news_list, 1):
-                elements.append({
-                    "tag": "text",
-                    "text": f"{i}. ",
-                })
-                elements.append({
-                    "tag": "a",
-                    "text": news["title"],
-                    "href": news["link"],
-                })
-                elements.append({
-                    "tag": "text",
-                    "text": f"  ({news['source']})\n",
-                })
-
-            elements.append({
-                "tag": "text",
-                "text": "\n",
-            })
-
-        total_count = sum(len(news) for news in news_by_category.values())
-        if total_count == 0:
-            elements.append({
-                "tag": "text",
-                "text": "😴 最近两天没有新资讯",
-            })
+                content += f"{i}. [{news['title']}]({news['link']})  ({news['source']})\n"
 
         return {
             "msg_type": "interactive",
@@ -129,7 +99,7 @@ class FeishuPusher:
                     {
                         "tag": "div",
                         "text": {
-                            "content": "".join([e["text"] for e in elements]),
+                            "content": content,
                             "tag": "lark_md"
                         }
                     }
@@ -137,13 +107,13 @@ class FeishuPusher:
             }
         }
 
-    def push(self, news_by_category: Dict[str, List[Dict]]) -> bool:
-        """推送到飞书"""
+    def push_single(self, category: str, news_list: List[Dict]) -> bool:
+        """推送单个分类"""
         if not self.webhook_url:
             print("错误: 未配置飞书 Webhook URL")
             return False
 
-        message = self.format_message(news_by_category)
+        message = self.format_message(category, news_list)
 
         try:
             response = requests.post(
@@ -155,14 +125,26 @@ class FeishuPusher:
             result = response.json()
 
             if result.get("code") == 0:
-                print(f"推送成功，共 {sum(len(n) for n in news_by_category.values())} 条新闻")
+                print(f"[{self.category_names[category]}] 推送成功，{len(news_list)} 条新闻")
                 return True
             else:
-                print(f"推送失败: {result}")
+                print(f"[{self.category_names[category]}] 推送失败: {result}")
                 return False
         except Exception as e:
-            print(f"推送异常: {e}")
+            print(f"[{self.category_names[category]}] 推送异常: {e}")
             return False
+
+    def push_all(self, news_by_category: Dict[str, List[Dict]]) -> int:
+        """分多次推送所有分类，每个分类单独一条消息"""
+        success_count = 0
+        for category, news_list in news_by_category.items():
+            if news_list:  # 只推送有新闻的分类
+                if self.push_single(category, news_list):
+                    success_count += 1
+                time.sleep(1)  # 间隔一下，避免请求过快
+            else:
+                print(f"[{self.category_names[category]}] 无新闻，跳过")
+        return success_count
 
 
 def main():
@@ -182,11 +164,14 @@ def main():
     total = sum(len(n) for n in news.values())
     print(f"抓取完成，共 {total} 条近期新闻")
 
-    print("正在推送到飞书...")
+    print("开始分批次推送到飞书...\n")
     pusher = FeishuPusher(webhook_url)
-    success = pusher.push(news)
+    success_count = pusher.push_all(news)
 
-    exit(0 if success else 1)
+    total_categories = sum(1 for n in news.values() if len(n) > 0)
+    print(f"\n推送完成: {success_count}/{total_categories} 个分类成功")
+
+    exit(0 if success_count == total_categories else 1)
 
 
 if __name__ == "__main__":
